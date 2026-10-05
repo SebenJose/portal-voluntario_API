@@ -1,0 +1,53 @@
+# Build output
+/target/
+**/target/
+*.class
+*.jar
+
+# Maven Wrapper downloaded binary
+/.mvn/wrapper/maven-wrapper.jar
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+
+# Logs and runtime files
+*.log
+logs/
+
+# Project proposal and local documents
+/Docs/
+
+# IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+.vscode/
+
+# Eclipse / Spring Tool Suite
+.apt_generated/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+/build/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Git metadata used by the managed workspace
+/.git-local/
