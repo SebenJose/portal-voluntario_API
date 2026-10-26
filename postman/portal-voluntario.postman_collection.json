@@ -1,0 +1,3703 @@
+{
+  "info": {
+    "name": "Portal Voluntário API",
+    "description": "Testes de ponta a ponta da API REST do Portal Voluntário.\n\nPré-requisito: API no perfil `dev` com banco recém-criado (dados fictícios V900/V901).\nExecute as pastas em ordem; cada etapa guarda IDs e tokens em variáveis da coleção.\nVeja postman/README.md para os comandos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Autenticação e conta",
+      "description": "Cadastro público de estudantes, login JWT dos perfis e rotas protegidas.",
+      "item": [
+        {
+          "name": "Cadastrar estudante",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/registrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "registrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Estudante Postman\",\n  \"email\": \"{{novoEmail}}\",\n  \"senha\": \"{{novaSenha}}\",\n  \"matriculaRa\": \"PM-0001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('novoEmail', 'estudante.' + Date.now() + '@example.invalid');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Conta criada como estudante ativo', () => { pm.expect(corpo.role).to.eql('ESTUDANTE'); pm.expect(corpo.ativo).to.be.true; });",
+                  "pm.test('Senha não é devolvida', () => pm.expect(corpo).to.not.have.property('senha'));",
+                  "pm.collectionVariables.set('novoEstudanteId', corpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastro com e-mail repetido",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/registrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "registrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Estudante Postman\",\n  \"email\": \"{{novoEmail}}\",\n  \"senha\": \"{{novaSenha}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastro com dados inválidos",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/registrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "registrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"\",\n  \"email\": \"sem-arroba\",\n  \"senha\": \"123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login do novo estudante",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{novoEmail}}\",\n  \"senha\": \"{{novaSenha}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Retorna token Bearer', () => pm.expect(corpo.tokenType).to.eql('Bearer'));",
+                  "pm.collectionVariables.set('tokenEstudante', corpo.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login com senha incorreta",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{novoEmail}}\",\n  \"senha\": \"senha-incorreta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login da organizadora (dev)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailOrganizador}}\",\n  \"senha\": \"{{senhaDemo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Retorna token Bearer', () => pm.expect(corpo.tokenType).to.eql('Bearer'));",
+                  "pm.collectionVariables.set('tokenOrganizador', corpo.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login do administrador (dev)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailAdmin}}\",\n  \"senha\": \"{{senhaDemo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Retorna token Bearer', () => pm.expect(corpo.tokenType).to.eql('Bearer'));",
+                  "pm.collectionVariables.set('tokenAdmin', corpo.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login do estudante Bruno (dev)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailBruno}}\",\n  \"senha\": \"{{senhaDemo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Retorna token Bearer', () => pm.expect(corpo.tokenType).to.eql('Bearer'));",
+                  "pm.collectionVariables.set('tokenBruno', corpo.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rota protegida sem token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/conta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conta"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Minha conta",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/conta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conta"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Retorna a conta autenticada', () => pm.expect(corpo.email).to.eql(pm.collectionVariables.get('novoEmail')));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Catálogo de oportunidades",
+      "description": "Consulta pública com filtros e publicação/edição pelo organizador.",
+      "item": [
+        {
+          "name": "Listar grupos de regulamento",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/grupos-regulamento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "grupos-regulamento"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "const extensao = corpo.find((g) => g.categoriaEixo === 'EXTENSAO');",
+                  "pm.test('Eixo EXTENSAO configurado', () => pm.expect(extensao).to.be.an('object'));",
+                  "pm.collectionVariables.set('grupoExtensaoId', extensao.id);",
+                  "pm.collectionVariables.set('limiteExtensao', extensao.limiteMaximoHoras);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar oportunidades",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "const oficina = corpo.find((o) => o.titulo === 'Oficina de introdução ao Git');",
+                  "pm.test('Catálogo contém a oficina do perfil dev', () => pm.expect(oficina).to.be.an('object'));",
+                  "pm.collectionVariables.set('oficinaId', oficina.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar por texto e eixo",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades?busca=git&categoriaEixo=ENSINO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades"
+              ],
+              "query": [
+                {
+                  "key": "busca",
+                  "value": "git"
+                },
+                {
+                  "key": "categoriaEixo",
+                  "value": "ENSINO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Retorna somente ENSINO com o texto buscado', () => {",
+                  "  pm.expect(corpo).to.not.be.empty;",
+                  "  corpo.forEach((o) => { pm.expect(o.categoriaEixo).to.eql('ENSINO'); pm.expect((o.titulo + o.descricao).toLowerCase()).to.include('git'); });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtro com eixo inválido",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades?categoriaEixo=ESPORTE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades"
+              ],
+              "query": [
+                {
+                  "key": "categoriaEixo",
+                  "value": "ESPORTE"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estudante não publica oportunidade",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Tentativa sem permissão\",\n  \"descricao\": \"Atividade criada pela coleção Postman para validar a API.\",\n  \"cargaHoraria\": 4,\n  \"vagas\": 10,\n  \"dataInicio\": \"{{dataInicio}}\",\n  \"dataFim\": \"{{dataFim}}\",\n  \"grupoHorasId\": {{grupoExtensaoId}},\n  \"modalidade\": \"PRESENCIAL\",\n  \"localAtividade\": \"Bloco B, sala 12\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const inicio = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);",
+                  "inicio.setUTCSeconds(0, 0);",
+                  "pm.collectionVariables.set('dataInicio', inicio.toISOString());",
+                  "pm.collectionVariables.set('dataFim', new Date(inicio.getTime() + 4 * 60 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar com início no passado",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Data inválida\",\n  \"descricao\": \"Atividade criada pela coleção Postman para validar a API.\",\n  \"cargaHoraria\": 4,\n  \"vagas\": 10,\n  \"dataInicio\": \"2020-01-01T10:00:00Z\",\n  \"dataFim\": \"{{dataFim}}\",\n  \"grupoHorasId\": {{grupoExtensaoId}},\n  \"modalidade\": \"PRESENCIAL\",\n  \"localAtividade\": \"Bloco B, sala 12\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar oportunidade",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Mutirão Postman\",\n  \"descricao\": \"Atividade criada pela coleção Postman para validar a API.\",\n  \"cargaHoraria\": 4,\n  \"vagas\": 10,\n  \"dataInicio\": \"{{dataInicio}}\",\n  \"dataFim\": \"{{dataFim}}\",\n  \"grupoHorasId\": {{grupoExtensaoId}},\n  \"modalidade\": \"PRESENCIAL\",\n  \"localAtividade\": \"Bloco B, sala 12\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const inicio = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);",
+                  "inicio.setUTCSeconds(0, 0);",
+                  "pm.collectionVariables.set('dataInicio', inicio.toISOString());",
+                  "pm.collectionVariables.set('dataFim', new Date(inicio.getTime() + 4 * 60 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Publicada sem inscritos', () => { pm.expect(corpo.totalInscritos).to.eql(0); pm.expect(corpo.canceladaEm).to.be.null; });",
+                  "pm.collectionVariables.set('oportunidadeId', corpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar oportunidade por ID",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Mesmo ID e eixo informado', () => { pm.expect(corpo.id).to.eql(Number(pm.collectionVariables.get('oportunidadeId'))); pm.expect(corpo.categoriaEixo).to.eql('EXTENSAO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar oportunidade",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Mutirão Postman (editado)\",\n  \"descricao\": \"Atividade criada pela coleção Postman para validar a API.\",\n  \"cargaHoraria\": 4,\n  \"vagas\": 5,\n  \"dataInicio\": \"{{dataInicio}}\",\n  \"dataFim\": \"{{dataFim}}\",\n  \"grupoHorasId\": {{grupoExtensaoId}},\n  \"modalidade\": \"PRESENCIAL\",\n  \"localAtividade\": \"Bloco B, sala 12\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Alterações aplicadas', () => { pm.expect(corpo.titulo).to.include('editado'); pm.expect(corpo.vagas).to.eql(5); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edição de atividade já iniciada",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Sem efeito\",\n  \"descricao\": \"Atividade criada pela coleção Postman para validar a API.\",\n  \"cargaHoraria\": 4,\n  \"vagas\": 5,\n  \"dataInicio\": \"{{dataInicio}}\",\n  \"dataFim\": \"{{dataFim}}\",\n  \"grupoHorasId\": {{grupoExtensaoId}},\n  \"modalidade\": \"PRESENCIAL\",\n  \"localAtividade\": \"Bloco B, sala 12\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Inscrições",
+      "item": [
+        {
+          "name": "Inscrever estudante",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/inscricoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "inscricoes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Status INSCRITO', () => pm.expect(corpo.statusParticipacao).to.eql('INSCRITO'));",
+                  "pm.collectionVariables.set('inscricaoId', corpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inscrição repetida",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/inscricoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "inscricoes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inscrição em atividade iniciada",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/inscricoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "inscricoes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Minhas inscrições",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inscricoes/minhas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inscricoes",
+                "minhas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Inclui a nova inscrição', () => pm.expect(corpo.map((i) => i.oportunidadeId)).to.include(Number(pm.collectionVariables.get('oportunidadeId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizador lista inscritos",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/inscricoes?status=INSCRITO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "inscricoes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "INSCRITO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Lista o estudante inscrito', () => pm.expect(corpo.map((i) => i.usuarioEmail)).to.include(pm.collectionVariables.get('novoEmail')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estudante não lista inscritos",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/inscricoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "inscricoes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar inscrição",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/inscricoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "inscricoes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inscrever novamente",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/inscricoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "inscricoes"
+              ]
+            },
+            "description": "Mantém um inscrito para os avisos de cancelamento da pasta 07."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 Frequência e certificados",
+      "description": "Usa a oficina encerrada do perfil dev. Exige banco recém-criado: a emissão para Bruno só pode ocorrer uma vez.",
+      "item": [
+        {
+          "name": "Participantes ainda inscritos na oficina",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/inscricoes?status=INSCRITO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "inscricoes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "INSCRITO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "const bruno = corpo.find((i) => i.usuarioEmail === pm.collectionVariables.get('emailBruno'));",
+                  "pm.test('Bruno aguarda a chamada (banco recém-criado)', () => pm.expect(bruno).to.be.an('object'));",
+                  "pm.collectionVariables.set('inscricaoBrunoId', bruno.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chamada com status INSCRITO",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/presencas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "presencas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participantes\": [{ \"inscricaoId\": {{inscricaoBrunoId}}, \"status\": \"INSCRITO\" }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar presença em lote",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/presencas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "presencas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participantes\": [{ \"inscricaoId\": {{inscricaoBrunoId}}, \"status\": \"PRESENTE\" }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Bruno presente', () => pm.expect(corpo[0].statusParticipacao).to.eql('PRESENTE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Emitir certificado em PDF",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/certificados/emitir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "certificados",
+                "emitir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inscricaoIds\": [{{inscricaoBrunoId}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "const item = corpo.find((c) => c.email === pm.collectionVariables.get('emailBruno'));",
+                  "pm.test('Certificado válido com código', () => { pm.expect(item.situacao).to.eql('VALIDO'); pm.expect(item.codigo).to.be.a('string'); });",
+                  "pm.collectionVariables.set('registroBrunoId', item.id);",
+                  "pm.collectionVariables.set('codigoCertificado', item.codigo);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Certificados da atividade",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/certificados",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "certificados"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Inclui a emissão', () => pm.expect(corpo.map((c) => c.codigo)).to.include(pm.collectionVariables.get('codigoCertificado')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar autenticidade (público)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/certificados/verificar/{{codigoCertificado}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "certificados",
+                "verificar",
+                "{{codigoCertificado}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Certificado autêntico de 6 horas', () => { pm.expect(corpo.situacao).to.eql('VALIDO'); pm.expect(Number(corpo.horas)).to.eql(6); });",
+                  "pm.collectionVariables.set('certDataInicio', corpo.dataInicio);",
+                  "pm.collectionVariables.set('certDataFim', corpo.dataFim);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Código inexistente",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/certificados/verificar/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "certificados",
+                "verificar",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Meus certificados (Bruno)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenBruno}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/certificados/meus",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "certificados",
+                "meus"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Bruno vê o certificado', () => pm.expect(corpo.map((c) => c.codigo)).to.include(pm.collectionVariables.get('codigoCertificado')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baixar PDF do certificado",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenBruno}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/certificados/{{codigoCertificado}}/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "certificados",
+                "{{codigoCertificado}}",
+                "pdf"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Arquivo PDF', () => { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'); pm.expect(pm.response.text().startsWith('%PDF-')).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Outro estudante não baixa o PDF",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/certificados/{{codigoCertificado}}/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "certificados",
+                "{{codigoCertificado}}",
+                "pdf"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retificar certificado",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/certificados/{{registroBrunoId}}/retificar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "certificados",
+                "{{registroBrunoId}}",
+                "retificar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoEsperado\": \"{{codigoCertificado}}\",\n  \"motivo\": \"Carga horária registrada incorretamente.\",\n  \"beneficiario\": \"Bruno Lima\",\n  \"atividade\": \"Oficina de introdução ao Git\",\n  \"organizador\": \"Marina Oliveira\",\n  \"horas\": 5.5,\n  \"categoriaEixo\": \"ENSINO\",\n  \"dataInicio\": \"{{certDataInicio}}\",\n  \"dataFim\": \"{{certDataFim}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Nova emissão vinculada à anterior', () => { pm.expect(corpo.codigo).to.not.eql(pm.collectionVariables.get('codigoCertificado')); pm.expect(corpo.documento.codigoAnterior).to.eql(pm.collectionVariables.get('codigoCertificado')); });",
+                  "pm.collectionVariables.set('codigoAnterior', pm.collectionVariables.get('codigoCertificado'));",
+                  "pm.collectionVariables.set('codigoCertificado', corpo.codigo);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retificação com código desatualizado",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/certificados/{{registroBrunoId}}/retificar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "certificados",
+                "{{registroBrunoId}}",
+                "retificar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoEsperado\": \"{{codigoAnterior}}\",\n  \"motivo\": \"Segunda sessão concorrente.\",\n  \"beneficiario\": \"Bruno Lima\",\n  \"atividade\": \"Oficina de introdução ao Git\",\n  \"organizador\": \"Marina Oliveira\",\n  \"horas\": 5,\n  \"categoriaEixo\": \"ENSINO\",\n  \"dataInicio\": \"{{certDataInicio}}\",\n  \"dataFim\": \"{{certDataFim}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Histórico do certificado",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/certificados/{{codigoCertificado}}/historico",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "certificados",
+                "{{codigoCertificado}}",
+                "historico"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Duas emissões preservadas', () => pm.expect(corpo.length).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Código anterior aponta para o substituto",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/certificados/verificar/{{codigoAnterior}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "certificados",
+                "verificar",
+                "{{codigoAnterior}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Indica a emissão substituta', () => pm.expect(corpo.codigoSubstituto).to.eql(pm.collectionVariables.get('codigoCertificado')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revogar certificado",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/certificados/{{registroBrunoId}}/revogar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "certificados",
+                "{{registroBrunoId}}",
+                "revogar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Demonstração de revogação pela coleção Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Situação REVOGADO', () => pm.expect(corpo.situacao).to.eql('REVOGADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificação após revogação",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/certificados/verificar/{{codigoCertificado}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "certificados",
+                "verificar",
+                "{{codigoCertificado}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Situação REVOGADO', () => pm.expect(corpo.situacao).to.eql('REVOGADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Participantes presentes da oficina",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/inscricoes?status=PRESENTE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "inscricoes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PRESENTE"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "const ana = corpo.find((i) => i.usuarioEmail === pm.collectionVariables.get('emailAna'));",
+                  "pm.test('Ana está presente', () => pm.expect(ana).to.be.an('object'));",
+                  "pm.collectionVariables.set('inscricaoAnaId', ana.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enviar link de certificado por e-mail",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/certificados",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "certificados"
+              ]
+            },
+            "description": "Fluxo da proposta: anexar o link do certificado e enfileirar o e-mail aos presentes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participantes\": [{\n    \"inscricaoId\": {{inscricaoAnaId}},\n    \"urlAnexo\": \"https://arquivos.example.invalid/certificados/ana-oficina-git.pdf\"\n  }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Registro criado para Ana', () => pm.expect(corpo).to.have.lengthOf(1));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 Comprovantes externos e banco de horas",
+      "item": [
+        {
+          "name": "Enviar comprovante (upload)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/documentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documentos"
+              ]
+            },
+            "description": "No Postman, selecione postman/fixtures/comprovante.pdf ou configure o diretório de trabalho na raiz do projeto.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "arquivo",
+                  "type": "file",
+                  "src": "postman/fixtures/comprovante.pdf",
+                  "contentType": "application/pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Documento PDF privado', () => pm.expect(corpo.tipo).to.eql('application/pdf'));",
+                  "pm.collectionVariables.set('documentoId', corpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baixar o próprio comprovante",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/documentos/{{documentoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documentos",
+                "{{documentoId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Conteúdo PDF', () => pm.expect(pm.response.text().startsWith('%PDF-')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Outro estudante não baixa o comprovante",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenBruno}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/documentos/{{documentoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documentos",
+                "{{documentoId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submissão com link e upload juntos",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/submissoes-externas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissoes-externas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Curso externo\",\n  \"horasDeclaradas\": 10,\n  \"grupoHorasId\": {{grupoExtensaoId}},\n  \"documentoId\": \"{{documentoId}}\",\n  \"urlDocumento\": \"https://example.invalid/comprovante.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submeter certificado externo",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/submissoes-externas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissoes-externas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Curso externo de voluntariado\",\n  \"horasDeclaradas\": 10,\n  \"grupoHorasId\": {{grupoExtensaoId}},\n  \"documentoId\": \"{{documentoId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Aguardando homologação', () => pm.expect(corpo.statusValidacao).to.eql('PENDENTE'));",
+                  "pm.collectionVariables.set('submissaoId', corpo.id);",
+                  "pm.collectionVariables.set('versaoRevisao', corpo.versaoRevisao);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Minhas submissões",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/submissoes-externas/minhas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissoes-externas",
+                "minhas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Inclui a submissão', () => pm.expect(corpo.map((s) => s.id)).to.include(Number(pm.collectionVariables.get('submissaoId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Painel antes da aprovação",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/horas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "horas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Pendência não conta horas', () => pm.expect(Number(corpo.horasTotais)).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin lista submissões",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissoes-externas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "submissoes-externas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Inclui a submissão', () => pm.expect(corpo.map((s) => s.id)).to.include(Number(pm.collectionVariables.get('submissaoId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estudante não homologa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissoes-externas/{{submissaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "submissoes-externas",
+                "{{submissaoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statusValidacao\": \"APROVADA\",\n  \"justificativa\": \"Sem permissão\",\n  \"versaoEsperada\": {{versaoRevisao}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Aprovar submissão",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissoes-externas/{{submissaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "submissoes-externas",
+                "{{submissaoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statusValidacao\": \"APROVADA\",\n  \"justificativa\": \"Comprovante legível e compatível com o eixo.\",\n  \"versaoEsperada\": {{versaoRevisao}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Status APROVADA', () => pm.expect(corpo.statusValidacao).to.eql('APROVADA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revisão com versão desatualizada",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissoes-externas/{{submissaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "submissoes-externas",
+                "{{submissaoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statusValidacao\": \"REJEITADA\",\n  \"justificativa\": \"Decisão concorrente.\",\n  \"versaoEsperada\": {{versaoRevisao}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Histórico de revisões (titular)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/submissoes-externas/{{submissaoId}}/revisoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissoes-externas",
+                "{{submissaoId}}",
+                "revisoes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Uma decisão registrada', () => pm.expect(corpo).to.have.lengthOf(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Painel do banco de horas",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/horas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "horas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "const extensao = corpo.eixos.find((e) => e.categoriaEixo === 'EXTENSAO');",
+                  "pm.test('Horas aprovadas no eixo EXTENSAO', () => { pm.expect(Number(extensao.horasComputadas)).to.eql(10); pm.expect(Number(corpo.horasTotais)).to.eql(10); });",
+                  "pm.test('Limite ainda não atingido', () => pm.expect(extensao.limiteAtingido).to.be.false);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 Administração e relatórios",
+      "item": [
+        {
+          "name": "Listar usuários",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Inclui o novo estudante', () => pm.expect(corpo.map((u) => u.email)).to.include(pm.collectionVariables.get('novoEmail')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estudante não acessa a administração",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar organizador",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Organizador Postman\",\n  \"email\": \"{{emailNovoOrganizador}}\",\n  \"senha\": \"{{novaSenha}}\",\n  \"role\": \"ORGANIZADOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('emailNovoOrganizador', 'organizador.' + Date.now() + '@example.invalid');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Perfil ORGANIZADOR', () => pm.expect(corpo.role).to.eql('ORGANIZADOR'));",
+                  "pm.collectionVariables.set('novoOrganizadorId', corpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desativar conta",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/usuarios/{{novoOrganizadorId}}/ativacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios",
+                "{{novoOrganizadorId}}",
+                "ativacao"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ativo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Conta inativa', () => pm.expect(corpo.ativo).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login de conta desativada",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailNovoOrganizador}}\",\n  \"senha\": \"{{novaSenha}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reativar conta",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/usuarios/{{novoOrganizadorId}}/ativacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios",
+                "{{novoOrganizadorId}}",
+                "ativacao"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ativo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Conta ativa', () => pm.expect(corpo.ativo).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Configurar limite do eixo",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/grupos-regulamento/EXTENSAO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "grupos-regulamento",
+                "EXTENSAO"
+              ]
+            },
+            "description": "Reaplica o limite atual para não alterar o regulamento do ambiente.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"limiteMaximoHoras\": {{limiteExtensao}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Limite preservado', () => pm.expect(Number(corpo.limiteMaximoHoras)).to.eql(Number(pm.collectionVariables.get('limiteExtensao'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Limite inválido",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/grupos-regulamento/EXTENSAO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "grupos-regulamento",
+                "EXTENSAO"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"limiteMaximoHoras\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Relatório do banco de horas",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/relatorios/banco-horas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "relatorios",
+                "banco-horas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Relatório em lista', () => pm.expect(corpo).to.be.an('array').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exportar banco de horas (CSV)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/relatorios/banco-horas/exportacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "relatorios",
+                "banco-horas",
+                "exportacao"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Arquivo CSV', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exportar participantes (CSV)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oficinaId}}/inscricoes/exportacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oficinaId}}",
+                "inscricoes",
+                "exportacao"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Arquivo CSV', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 Cancelamento de atividade",
+      "item": [
+        {
+          "name": "Cancelar oportunidade",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/cancelamento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "cancelamento"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Previsão de chuva forte no dia da atividade.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Cancelamento registrado', () => { pm.expect(corpo.canceladaEm).to.be.a('string'); pm.expect(corpo.motivoCancelamento).to.include('chuva'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inscrição em atividade cancelada",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenBruno}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/inscricoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "inscricoes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Erro informa o motivo em detail', () => pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avisos aos inscritos",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/cancelamento/avisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "cancelamento",
+                "avisos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Um aviso criado para o inscrito', () => pm.expect(corpo.pendentes + corpo.enviados + corpo.falhos).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reenviar avisos com falha",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/oportunidades/{{oportunidadeId}}/cancelamento/avisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oportunidades",
+                "{{oportunidadeId}}",
+                "cancelamento",
+                "avisos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 Senha e sessões",
+      "item": [
+        {
+          "name": "Solicitar recuperação de senha",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/recuperar-senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "recuperar-senha"
+              ]
+            },
+            "description": "Sempre retorna 202, inclusive para e-mails não cadastrados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{novoEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 202', () => pm.response.to.have.status(202));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token de redefinição inválido",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/redefinir-senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "redefinir-senha"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n  \"novaSenha\": \"OutraSenha@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alterar senha",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/conta/senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conta",
+                "senha"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senhaAtual\": \"{{novaSenha}}\",\n  \"novaSenha\": \"SenhaAlterada@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token anterior foi revogado",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenEstudante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/conta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conta"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login com a nova senha",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{novoEmail}}\",\n  \"senha\": \"SenhaAlterada@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Retorna token Bearer', () => pm.expect(corpo.tokenType).to.eql('Bearer'));",
+                  "pm.collectionVariables.set('tokenEstudante', corpo.accessToken);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "senhaDemo",
+      "value": "password"
+    },
+    {
+      "key": "novaSenha",
+      "value": "SenhaPostman@123"
+    },
+    {
+      "key": "emailOrganizador",
+      "value": "marina.organizadora@example.invalid"
+    },
+    {
+      "key": "emailAdmin",
+      "value": "admin@example.invalid"
+    },
+    {
+      "key": "emailBruno",
+      "value": "bruno.lima@example.invalid"
+    },
+    {
+      "key": "emailAna",
+      "value": "ana.souza@example.invalid"
+    }
+  ]
+}
