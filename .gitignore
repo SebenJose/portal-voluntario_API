@@ -52,8 +52,5 @@ Thumbs.db
 # Git metadata used by the managed workspace
 /.git-local/
 
-# Clone local do frontend (repositório independente)
-/frontend/
-
 /.pnpm-store/
 /.local-data/
