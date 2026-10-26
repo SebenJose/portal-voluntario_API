@@ -216,13 +216,13 @@ Os [relatórios e exportações](docs/relatorios-e-exportacao.md) estão dispon�
 na gestão de participantes e na administração do banco de horas. Os arquivos CSV
 respeitam as permissões, os filtros de participantes e os tetos do regulamento.
 
-O frontend existente foi clonado de `/home/sebenjose/Portal-Voluntario` para
-`frontend/` como repositório independente e agora utiliza a API Java. O [estado da implementação e mapa de integração](docs/estado-e-integracao.md)
+O frontend Next.js fica em `frontend/`, no mesmo repositório da API, e utiliza a
+API Java. O [estado da implementação e mapa de integração](docs/estado-e-integracao.md)
 detalha o que está pronto, as diferenças de contratos e as próximas etapas.
 
 ### Execução integrada sem dados fictícios
 
-O frontend em `frontend/` já está integrado; consulte seu README para detalhes.
+O frontend em `frontend/` já está integrado; consulte o [README do frontend](frontend/README.md) para detalhes.
 Crie `application-local.properties` (ignorado pelo Git) na raiz da API:
 
 ```properties
