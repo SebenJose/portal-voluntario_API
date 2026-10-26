@@ -2,6 +2,8 @@ package portal_voluntario.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -45,6 +47,26 @@ public class Oportunidade {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "organizador_id", nullable = false)
     private Usuario organizador;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Modalidade modalidade;
+
+    @Column(name = "local_atividade", length = 255)
+    private String localAtividade;
+
+    @Column(name = "link_participacao", length = 2048)
+    private String linkParticipacao;
+
+    @Column(name = "cancelada_em")
+    private OffsetDateTime canceladaEm;
+
+    @Column(name = "motivo_cancelamento", length = 500)
+    private String motivoCancelamento;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancelada_por_id")
+    private Usuario canceladaPor;
 
     protected Oportunidade() {
     }
@@ -119,5 +141,24 @@ public class Oportunidade {
 
     public Usuario getOrganizador() {
         return organizador;
+    }
+
+    public void definirLocal(Modalidade modalidade, String localAtividade, String linkParticipacao) {
+        this.modalidade = modalidade;
+        this.localAtividade = localAtividade;
+        this.linkParticipacao = linkParticipacao;
+    }
+    public Modalidade getModalidade() { return modalidade; }
+    public String getLocalAtividade() { return localAtividade; }
+    public String getLinkParticipacao() { return linkParticipacao; }
+
+    public boolean isCancelada() { return canceladaEm != null; }
+    public OffsetDateTime getCanceladaEm() { return canceladaEm; }
+    public String getMotivoCancelamento() { return motivoCancelamento; }
+    public Usuario getCanceladaPor() { return canceladaPor; }
+    public void cancelar(String motivo, Usuario responsavel) {
+        this.canceladaEm = OffsetDateTime.now();
+        this.motivoCancelamento = motivo;
+        this.canceladaPor = responsavel;
     }
 }

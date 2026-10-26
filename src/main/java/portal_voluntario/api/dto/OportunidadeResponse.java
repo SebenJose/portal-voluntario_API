@@ -15,9 +15,15 @@ public record OportunidadeResponse(
         Long grupoHorasId,
         String categoriaEixo,
         Long organizadorId,
-        String organizadorNome) {
+        String organizadorNome,
+        long totalInscritos,
+        String modalidade,
+        String localAtividade,
+        String linkParticipacao,
+        OffsetDateTime canceladaEm,
+        String motivoCancelamento) {
 
-    public static OportunidadeResponse from(Oportunidade oportunidade) {
+    public static OportunidadeResponse from(Oportunidade oportunidade, long totalInscritos) {
         return new OportunidadeResponse(
                 oportunidade.getId(),
                 oportunidade.getTitulo(),
@@ -29,6 +35,9 @@ public record OportunidadeResponse(
                 oportunidade.getGrupoHoras().getId(),
                 oportunidade.getGrupoHoras().getCategoriaEixo().name(),
                 oportunidade.getOrganizador().getId(),
-                oportunidade.getOrganizador().getNome());
+                oportunidade.getOrganizador().getNome(), totalInscritos,
+                oportunidade.getModalidade() == null ? null : oportunidade.getModalidade().name(),
+                oportunidade.getLocalAtividade(), oportunidade.getLinkParticipacao(),
+                oportunidade.getCanceladaEm(), oportunidade.getMotivoCancelamento());
     }
 }

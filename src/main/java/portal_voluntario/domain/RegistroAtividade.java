@@ -30,6 +30,10 @@ public class RegistroAtividade {
     @JoinColumn(name = "oportunidade_id", nullable = false)
     private Oportunidade oportunidade;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "grupo_horas_id")
+    private GrupoRegulamento grupoHoras;
+
     @Column(name = "horas_computadas", nullable = false, precision = 6, scale = 2)
     private BigDecimal horasComputadas;
 
@@ -43,6 +47,11 @@ public class RegistroAtividade {
     @Column(name = "url_anexo", columnDefinition = "TEXT")
     private String urlAnexo;
 
+    @Column(nullable = false)
+    private boolean revogado;
+    @Column(name = "revogado_em") private OffsetDateTime revogadoEm;
+    @Column(name = "motivo_revogacao", length = 500) private String motivoRevogacao;
+
     protected RegistroAtividade() {
     }
 
@@ -50,6 +59,7 @@ public class RegistroAtividade {
             Usuario usuario, Oportunidade oportunidade, BigDecimal horasComputadas, String urlAnexo) {
         this.usuario = usuario;
         this.oportunidade = oportunidade;
+        this.grupoHoras = oportunidade.getGrupoHoras();
         this.horasComputadas = horasComputadas;
         this.urlAnexo = urlAnexo;
         this.statusEnvioEmail = StatusEnvioEmail.PENDENTE;
@@ -82,6 +92,13 @@ public class RegistroAtividade {
         return horasComputadas;
     }
 
+    public GrupoRegulamento getGrupoHoras() { return grupoHoras == null ? oportunidade.getGrupoHoras() : grupoHoras; }
+
+    public void retificarHoras(BigDecimal horas, GrupoRegulamento grupo) {
+        this.horasComputadas = horas;
+        this.grupoHoras = grupo;
+    }
+
     public StatusEnvioEmail getStatusEnvioEmail() {
         return statusEnvioEmail;
     }
@@ -92,5 +109,10 @@ public class RegistroAtividade {
 
     public String getUrlAnexo() {
         return urlAnexo;
+    }
+    public boolean isRevogado() { return revogado; }
+    public OffsetDateTime getRevogadoEm() { return revogadoEm; }
+    public void revogar(String motivo) {
+        if (!revogado) { this.revogado = true; this.revogadoEm = OffsetDateTime.now(); this.motivoRevogacao = motivo; }
     }
 }

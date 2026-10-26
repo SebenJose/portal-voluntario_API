@@ -33,6 +33,12 @@ public class Usuario {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    @Column(nullable = false)
+    private boolean ativo = true;
+
+    @Column(name = "versao_credencial", nullable = false)
+    private int versaoCredencial;
+
     protected Usuario() {
     }
 
@@ -66,5 +72,20 @@ public class Usuario {
 
     public Role getRole() {
         return role;
+    }
+
+    public boolean isAtivo() { return ativo; }
+    public int getVersaoCredencial() { return versaoCredencial; }
+
+    public void alterarSenha(String senhaCodificada) {
+        this.senha = senhaCodificada;
+        this.versaoCredencial++;
+    }
+
+    public void definirAtivo(boolean ativo) {
+        if (this.ativo != ativo) {
+            this.ativo = ativo;
+            this.versaoCredencial++;
+        }
     }
 }

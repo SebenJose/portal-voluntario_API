@@ -9,6 +9,8 @@ public record BancoHorasResponse(BigDecimal horasTotais, List<EixoHoras> eixos) 
             BigDecimal horasComputadas,
             BigDecimal limiteMaximoHoras,
             BigDecimal percentualAtingido,
-            boolean limiteAtingido) {
+            boolean limiteAtingido,
+            BigDecimal horasAcumuladas,
+            BigDecimal horasExcedentes) {
     }
 }

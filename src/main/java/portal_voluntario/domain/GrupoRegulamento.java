@@ -19,13 +19,22 @@ public class GrupoRegulamento {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "categoria_eixo", nullable = false, length = 20)
+    @Column(name = "categoria_eixo", nullable = false, unique = true, length = 20)
     private CategoriaEixo categoriaEixo;
 
     @Column(name = "limite_maximo_horas", nullable = false, precision = 7, scale = 2)
     private BigDecimal limiteMaximoHoras;
 
     protected GrupoRegulamento() {
+    }
+
+    public GrupoRegulamento(CategoriaEixo categoriaEixo, BigDecimal limiteMaximoHoras) {
+        this.categoriaEixo = categoriaEixo;
+        this.limiteMaximoHoras = limiteMaximoHoras;
+    }
+
+    public void atualizarLimite(BigDecimal limiteMaximoHoras) {
+        this.limiteMaximoHoras = limiteMaximoHoras;
     }
 
     public Long getId() {

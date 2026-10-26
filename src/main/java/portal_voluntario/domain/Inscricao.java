@@ -36,6 +36,13 @@ public class Inscricao {
     @Column(name = "status_participacao", nullable = false, length = 20)
     private StatusParticipacao statusParticipacao;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_aviso_cancelamento", length = 20)
+    private StatusEnvioEmail statusAvisoCancelamento;
+
+    @Column(name = "aviso_cancelamento_enviado_em")
+    private OffsetDateTime avisoCancelamentoEnviadoEm;
+
     protected Inscricao() {
     }
 
@@ -68,5 +75,11 @@ public class Inscricao {
 
     public StatusParticipacao getStatusParticipacao() {
         return statusParticipacao;
+    }
+
+    public StatusEnvioEmail getStatusAvisoCancelamento() { return statusAvisoCancelamento; }
+    public void marcarAvisoCancelamento(StatusEnvioEmail status) {
+        statusAvisoCancelamento = status;
+        avisoCancelamentoEnviadoEm = status == StatusEnvioEmail.ENVIADO ? OffsetDateTime.now() : null;
     }
 }

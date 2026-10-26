@@ -1,5 +1,6 @@
 package portal_voluntario.security;
 
+import jakarta.servlet.DispatcherType;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.crypto.SecretKey;
@@ -21,6 +22,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -46,10 +49,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
-        return NimbusJwtDecoder.withSecretKey(jwtSecretKey)
+    JwtDecoder jwtDecoder(SecretKey jwtSecretKey, EstadoContaValidator estadoContaValidator,
+            @Value("${security.jwt.issuer}") String issuer) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtSecretKey)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(issuer), estadoContaValidator));
+        return decoder;
     }
 
     @Bean
@@ -72,16 +79,30 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        // A requisição original já foi autorizada; sem isto, erros 400 viram 401 para anônimos.
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml",
+                                "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/certificados/verificar/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/certificados/meus").hasRole("ESTUDANTE")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/documentos").hasRole("ESTUDANTE")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/v1/dashboard/**").hasRole("ESTUDANTE")
                         .requestMatchers(HttpMethod.POST, "/api/v1/submissoes-externas/**").hasRole("ESTUDANTE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/submissoes-externas/**").hasRole("ESTUDANTE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/inscricoes/minhas").hasRole("ESTUDANTE")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/oportunidades/*/inscricoes").hasRole("ESTUDANTE")
                         .requestMatchers(HttpMethod.POST, "/api/v1/oportunidades/*/inscricoes").hasRole("ESTUDANTE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/oportunidades/*/inscricoes")
                             .hasAnyRole("ORGANIZADOR", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/oportunidades/*/inscricoes/exportacao")
+                            .hasAnyRole("ORGANIZADOR", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/oportunidades/*/certificados")
+                            .hasAnyRole("ORGANIZADOR", "ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/oportunidades/*/presencas")
+                            .hasAnyRole("ORGANIZADOR", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/oportunidades/*/cancelamento/avisos")
                             .hasAnyRole("ORGANIZADOR", "ADMINISTRADOR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/oportunidades/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/grupos-regulamento/**").permitAll()
